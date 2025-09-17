@@ -1,0 +1,12 @@
+{
+  "effects": [
+    "oil_sheen",
+    "debris_on_beach",
+    "flooded_area"
+  ],
+  "calamities": [
+    "oil_spill",
+    "debris",
+    "floods "
+  ]
+}
