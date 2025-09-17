@@ -1,5 +1,4 @@
-# verify_ticket_standalone.py  — CPU-only, Windows-friendly
-# Uses SentenceTransformer "l3cube-pune/indic-sentence-similarity-sbert" for multilingual text scoring.
+
 
 import json, re, os
 from typing import Dict, List
@@ -10,23 +9,23 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import transforms, models
-from sentence_transformers import SentenceTransformer, util  # <— swapped in
+from sentence_transformers import SentenceTransformer, util  
 
 
 TF_ENABLE_ONEDNN_OPTS=0
-# ========= CONFIG: EDIT THESE FOUR LINES =========
-CKPT_PATH = r"best (1).pt"                  # <- your best.pt
-IMG_PATH  = r"oilspill_1.jpg"               # <- an image to score
-DESC      = "Black liquid in ocean"         # <- user description (any Indic/English)
-OUT_JSON  = r""                             # <- optional output path, or "" to skip
-# ========= END CONFIG =========
+
+CKPT_PATH = r"best (1).pt"                  
+IMG_PATH  = r"oilspill_1.jpg"              
+DESC      = "Black liquid in ocean"         
+OUT_JSON  = r""                             
+
 
 DEVICE = "cpu"  # force CPU
 
 def norm(lbl: str) -> str:
     return str(lbl).strip().lower().replace("-", "_")
 
-# Cards for text similarity (edit wording if you like)
+
 EFFECT_CARDS: Dict[str, str] = {
     "oil_sheen": "oil sheen or petroleum slick with rainbow film or black tar on water or shoreline",
     "vessel_wreckage_visible": "visible ship or boat wreckage such as grounded or sunken vessel or torn hull",
@@ -48,10 +47,10 @@ CALAMITY_CARDS: Dict[str, str] = {
     "none": "no calamity is present",
 }
 
-# thresholds for semantic fallback (embeddings mapped to [0,1])
+
 FALLBACK_THR = {"tsunami": 0.75, "ship_boat_wreckage": 0.70}
 
-# ---------------- CNN model (same architecture as training) ----------------
+
 class MultiTaskEffB0(nn.Module):
     def __init__(self, n_effects: int, n_calam: int):
         super().__init__()
@@ -72,7 +71,7 @@ class MultiTaskEffB0(nn.Module):
         feats = self.dropout(feats)
         return self.head_effects(feats), self.head_calam(feats)
 
-# --------------- IndicSBERT scorer (multilingual sentence similarity) ---------------
+
 class IndicSBERTScorer:
     def __init__(self, model_id: str = "l3cube-pune/indic-sentence-similarity-sbert", device: str = "cpu"):
         self.embedder = SentenceTransformer(model_id, device=device)
@@ -90,7 +89,7 @@ class IndicSBERTScorer:
         sims = (v_desc @ v_lbls.T).ravel()
         return {labels[i]: float(0.5 * (sims[i] + 1.0)) for i in range(len(labels))}
 
-# tiny deterministic cue boost for keywords
+
 CUESETS = {
     "tsunami": [
         r"\bdrawback\b", r"\bsea\s+reced(ed|ing)\b", r"\bexposed\s+seabed\b",
@@ -140,16 +139,16 @@ def run_ticket(ckpt_path: str, img_path: str, description: str) -> Dict:
         pE = torch.sigmoid(outE).squeeze(0).cpu().numpy()
         pC = torch.sigmoid(outC).squeeze(0).cpu().numpy()
 
-    # top-1 from each head
+  
     e_idx = int(np.argmax(pE)); e_top, p_e = eff_labels[e_idx], float(pE[e_idx])
     c_idx = int(np.argmax(pC)); c_top, p_c = cal_labels[c_idx], float(pC[c_idx])
     avg_top_img_score = round((p_e + p_c) / 2.0, 3)
 
-    # ensure cards cover any custom labels
+  
     for lbl in eff_labels: EFFECT_CARDS.setdefault(lbl, f"visual evidence of {lbl.replace('_',' ')}")
     for lbl in cal_labels: CALAMITY_CARDS.setdefault(lbl, f"calamity: {lbl.replace('_',' ')}")
 
-    # text support via IndicSBERT (multilingual)
+   
     scorer = IndicSBERTScorer(device=DEVICE)
     p_txt_e = scorer.scores(description, {e_top: EFFECT_CARDS[e_top]}).get(e_top, 0.0)
     p_txt_c = scorer.scores(description, {c_top: CALAMITY_CARDS[c_top]}).get(c_top, 0.0)
@@ -196,7 +195,7 @@ def run_ticket(ckpt_path: str, img_path: str, description: str) -> Dict:
         "semantic_on_none": sem,
     }
 
-# --------- run with the CONFIG above ---------
+
 if __name__ == "__main__":
     out = run_ticket(CKPT_PATH, IMG_PATH, DESC)
     text = json.dumps(out, ensure_ascii=False, indent=2)
@@ -205,3 +204,4 @@ if __name__ == "__main__":
         os.makedirs(os.path.dirname(OUT_JSON) or ".", exist_ok=True)
         with open(OUT_JSON, "w", encoding="utf-8") as f:
             f.write(text)
+
