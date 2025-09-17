@@ -100,11 +100,11 @@ class OceanDisasterDetector:
         self.disaster_keywords = self._initialize_disaster_keywords()
         self.vectorizer = TfidfVectorizer(stop_words="english")
         self.db_connection = psycopg2.connect(
-            dbname="bluebeacon",
-            user="jeevan",
-            password="Jeevan@1210",
-            host="15.207.102.171",
-            port=5432,
+            dbname="...",
+            user="...",
+            password="...",
+            host="...",
+            port=1111,
         )
 
     def _initialize_disaster_keywords(self) -> Dict[DisasterType, List[str]]:
